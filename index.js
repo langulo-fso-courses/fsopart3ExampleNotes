@@ -4,6 +4,7 @@ const app = express(); //Express instance
 const parser = require("body-parser");
 const cors = require("cors"); // Cross-origin request middleware
 
+app.use(express.static('build'));
 app.use(cors());
 app.use(parser.json());
 
