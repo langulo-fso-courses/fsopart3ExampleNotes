@@ -72,7 +72,7 @@ app.post("/api/notes", (req, res) => {
 
   // You can get the headers via the request obj
   notes = notes.concat(note);
-  res.status(201).end();
+  res.json(note);
 });
 
 app.put("/api/notes/:id", (req, res) => {
