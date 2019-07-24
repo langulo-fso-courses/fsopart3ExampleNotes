@@ -69,7 +69,7 @@ app.post("/api/notes", (req, res) => {
     date: new Date(),
     id: generateId()
   };
-
+  
   // You can get the headers via the request obj
   notes = notes.concat(note);
   res.json(note);
@@ -83,16 +83,16 @@ app.put("/api/notes/:id", (req, res) => {
     return response.status(400).json({ error: "content missing" });
   }
 
-  // Make a new note
+  // Make the updated note
   const updatedNote = {
     content: body.content,
     important: body.important,
     date: new Date(),
-    id: generateId()
+    id: body.id
   };
 
   notes = notes.filter(note => note.id !== updatedNote.id).concat(updatedNote);
-  res.status(200).end();
+  res.json(updatedNote);
 });
 
 app.delete("/api/notes/:id", (req, res) => {
