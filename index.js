@@ -42,11 +42,11 @@ app.get("/", (req, res) => {
   res.send("<h1>Landing page!</h1>");
 });
 
-app.get("api/notes", (req, res) => {
+app.get("/api/notes", (req, res) => {
   res.json(notes);
 });
 
-app.get("api/notes/:id", (req, res) => {
+app.get("/api/notes/:id", (req, res) => {
   const id = Number(req.params.id);
   const note = notes.find(n => {
     return n.id === id;
@@ -54,7 +54,7 @@ app.get("api/notes/:id", (req, res) => {
   note ? res.json(note) : res.status(404).end(); // End the response
 });
 
-app.post("api/notes", (req, res) => {
+app.post("/api/notes", (req, res) => {
   // body-parser turns the incoming JSON data into an object and puts it in req.body
   const body = req.body;
   // If there's no data, return an error
@@ -75,7 +75,7 @@ app.post("api/notes", (req, res) => {
   res.status(201).end();
 });
 
-app.put("api/notes/:id", (req, res) => {
+app.put("/api/notes/:id", (req, res) => {
   // body-parser turns the incoming JSON data into an object and puts it in req.body
   const body = req.body;
   // If there's no data, return an error
@@ -95,7 +95,7 @@ app.put("api/notes/:id", (req, res) => {
   res.status(200).end();
 });
 
-app.delete("api/notes/:id", (req, res) => {
+app.delete("/api/notes/:id", (req, res) => {
   const id = Number(req.params.id);
   // This doesn't actually delete the note, it removes it from the variable in memory
   notes = notes.filter(n => n.id !== id);
