@@ -46,13 +46,29 @@ app.get("/", (req, res) => {
 app.get("/api/notes", (req, res) => {
   // Empty object works like an SQL SELECT *
   // We explicitly use the .toJSON() method from the note obj instead of delegating to middleware
-  Note.find({}).then(notes => res.json(notes.map(note => note.toJSON())));
+  Note.find({})
+    .then(notes => res.json(notes.map(note => note.toJSON())))
+    .catch(err => {
+      console.log("get all notes error: ", err);
+      res.status(400).send({ error: err.message });
+    });
 });
 
 app.get("/api/notes/:id", (req, res) => {
   const noteId = req.params.id;
   // We use res.json() additionally to toJSON() so the res headers are set correctly
-  Note.findById(noteId).then(note => res.json(note.toJSON()));
+  Note.findById(noteId)
+    .then(note => {
+      if (note) {
+        res.json(note.toJSON());
+      } else {
+        res.status(404).send();
+      }
+    })
+    .catch(err => {
+      console.log("get one note error: ", err);
+      res.status(400).send({ error: err.message });
+    });
 });
 
 app.post("/api/notes", (req, res) => {
@@ -61,22 +77,22 @@ app.post("/api/notes", (req, res) => {
   // If there's no data, return an error
   if (!body.content) {
     return response.status(400).json({ error: "content missing" });
-  }
-
-  // Make a new note
-  const note = new Note({
-    content: body.content,
-    important: body.important || false,
-    date: new Date()
-  });
-
-  // Call the note's toJSON() to preserve the custom format
-  note
-    .save()
-    .then(savedNote => res.json(savedNote.toJSON()))
-    .catch(error => {
-      console.log("Post note error: ", error);
+  } else {
+    const newNote = new Note({
+      content: body.content,
+      important: body.important || false,
+      date: new Date()
     });
+    newNote
+      .save()
+      .then(() => {
+        res.status(201).json(note => note.toJSON());
+      })
+      .catch(err => {
+        console.log("Error creating note: ", err);
+        res.status(400).send({ error: err.message });
+      });
+  }
 });
 
 app.put("/api/notes/:id", (req, res) => {
