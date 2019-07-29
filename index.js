@@ -1,7 +1,9 @@
+require("dotenv").config(); // Import environment vars from .env file using dotenv lib
 const express = require("express");
 const app = express(); //Express instance
 const parser = require("body-parser");
 const cors = require("cors"); // Cross-origin request middleware
+const Note = require("./models/note"); // Obj is imported already instanced
 
 app.use(express.static("build"));
 app.use(cors());
@@ -42,15 +44,15 @@ app.get("/", (req, res) => {
 });
 
 app.get("/api/notes", (req, res) => {
-  res.json(notes);
+  // Empty object works like an SQL SELECT *
+  // We explicitly use the .toJSON() method from the note obj instead of delegating to middleware
+  Note.find({}).then(notes => res.json(notes.map(note => note.toJSON())));
 });
 
 app.get("/api/notes/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const note = notes.find(n => {
-    return n.id === id;
-  });
-  note ? res.json(note) : res.status(404).end(); // End the response
+  const noteId = req.params.id;
+  // We use res.json() additionally to toJSON() so the res headers are set correctly
+  Note.findById(noteId).then(note => res.json(note.toJSON()));
 });
 
 app.post("/api/notes", (req, res) => {
@@ -62,16 +64,19 @@ app.post("/api/notes", (req, res) => {
   }
 
   // Make a new note
-  const note = {
+  const note = new Note({
     content: body.content,
     important: body.important || false,
-    date: new Date(),
-    id: generateId()
-  };
-  
-  // You can get the headers via the request obj
-  notes = notes.concat(note);
-  res.json(note);
+    date: new Date()
+  });
+
+  // Call the note's toJSON() to preserve the custom format
+  note
+    .save()
+    .then(savedNote => res.json(savedNote.toJSON()))
+    .catch(error => {
+      console.log("Post note error: ", error);
+    });
 });
 
 app.put("/api/notes/:id", (req, res) => {
