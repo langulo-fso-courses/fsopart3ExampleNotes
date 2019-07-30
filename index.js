@@ -4,39 +4,13 @@ const app = express(); //Express instance
 const parser = require("body-parser");
 const cors = require("cors"); // Cross-origin request middleware
 const Note = require("./models/note"); // Obj is imported already instanced
+const idErrorMiddleware = require("./errorHandlers/badId");
+const unknownEndpointMiddleware = require("./errorHandlers/unknownendpoint");
 
-app.use(express.static("build"));
-app.use(cors());
+// The order of execution of middleware is the same as the order in which it is passed:
+app.use(express.static("build")); // Runs 1st
+app.use(cors()); // Runs 2nd...
 app.use(parser.json());
-
-// Notes, in JS plain obj format
-let notes = [
-  {
-    id: 1,
-    content: "HTML is easy",
-    date: "2019-05-30T17:30:31.098Z",
-    important: true
-  },
-  {
-    id: 2,
-    content: "Browser can execute only Javascript",
-    date: "2019-05-30T18:39:34.091Z",
-    important: false
-  },
-  {
-    id: 3,
-    content: "GET and POST are the most important methods of HTTP protocol",
-    date: "2019-05-30T19:20:14.298Z",
-    important: true
-  }
-];
-
-const generateId = () => {
-  // get the highest id currently on the list of notes
-  // triple dots unpack the array returned to find the max
-  const maxId = notes.length > 0 ? Math.max(...notes.map(n => n.id)) : 0;
-  return maxId + 1;
-};
 
 // Main entry point
 app.get("/", (req, res) => {
@@ -54,7 +28,8 @@ app.get("/api/notes", (req, res) => {
     });
 });
 
-app.get("/api/notes/:id", (req, res) => {
+// We add the "next" express function to use our custom middleware
+app.get("/api/notes/:id", (req, res, next) => {
   const noteId = req.params.id;
   // We use res.json() additionally to toJSON() so the res headers are set correctly
   Note.findById(noteId)
@@ -65,10 +40,8 @@ app.get("/api/notes/:id", (req, res) => {
         res.status(404).send();
       }
     })
-    .catch(err => {
-      console.log("get one note error: ", err);
-      res.status(400).send({ error: err.message });
-    });
+    // Passing the error to an error handling middleware already registered
+    .catch(error => next(error));
 });
 
 app.post("/api/notes", (req, res) => {
@@ -98,29 +71,29 @@ app.post("/api/notes", (req, res) => {
 app.put("/api/notes/:id", (req, res) => {
   // body-parser turns the incoming JSON data into an object and puts it in req.body
   const body = req.body;
-  // If there's no data, return an error
-  if (!body.content) {
-    return response.status(400).json({ error: "content missing" });
-  }
 
-  // Make the updated note
-  const updatedNote = {
+  // Make the updated note. We don't use a Note obj, we use the raw data
+  // The id is no longer appended, since we're using atlas
+  const note = {
     content: body.content,
-    important: body.important,
-    date: new Date(),
-    id: body.id
+    important: body.important
   };
-
-  notes = notes.filter(note => note.id !== updatedNote.id).concat(updatedNote);
-  res.json(updatedNote);
+  // new:true in the options arg allows using the new note instead of the original
+  Note.findByIdAndUpdate(req.params.id, note, { new: true })
+    .then(updatedNote => res.json(updatedNote.toJSON()))
+    .catch(error => next(error));
 });
 
+// TODO: test at the end
 app.delete("/api/notes/:id", (req, res) => {
-  const id = Number(req.params.id);
-  // This doesn't actually delete the note, it removes it from the variable in memory
-  notes = notes.filter(n => n.id !== id);
-  res.status(204).end();
+  // TODO: What's the difference between "remove" and "delete"?
+  Note.findByIdAndRemove(req.params.id)
+    .then(res => res.status(204).end())
+    .catch(error => next(error));
 });
+
+app.use(unknownEndpointMiddleware); // Runs second to last, it MUST be in this order
+app.use(idErrorMiddleware); // Runs last. It MUST run last in order to work
 
 // use the default env PORT variable or port 3001 as default
 const PORT = process.env.PORT || 3001;

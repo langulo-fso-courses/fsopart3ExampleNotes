@@ -1,5 +1,7 @@
 const mongoose = require("mongoose"); // Use this mongoDB library for db interactions
-
+// Prevents the use of a deprecated method by mongoose's API. For details
+// check https://stackoverflow.com/questions/52572852/deprecationwarning-collection-findandmodify-is-deprecated-use-findoneandupdate
+mongoose.set('useFindAndModify', false);
 // These should be env vars saved in a config file
 const url =  process.env.MONGODB_URI
 console.log(`Connecting to ${url}`)
